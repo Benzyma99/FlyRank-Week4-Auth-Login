@@ -1,7 +1,9 @@
+/** Client-side auth helpers — tokens live in localStorage and are sent as Bearer headers. */
 const ACCESS_TOKEN_KEY = "access_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
 
 export function getAccessToken(): string | null {
+  // Guard for SSR — localStorage is only available in the browser
   if (typeof window === "undefined") return null;
   return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
@@ -26,6 +28,7 @@ export async function login(
   email: string,
   password: string,
 ): Promise<{ access_token: string; refresh_token: string }> {
+  // Proxies to POST /auth/login — Supabase returns JWT tokens on success
   const res = await fetch("/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -45,6 +48,7 @@ export async function signup(
   email: string,
   password: string,
 ): Promise<void> {
+  // Proxies to POST /auth/signup — creates the user in Supabase Auth
   const res = await fetch("/auth/signup", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -62,6 +66,7 @@ export async function logout(): Promise<void> {
   const token = getAccessToken();
   if (!token) return;
 
+  // Invalidate the session server-side, then wipe local tokens
   await fetch("/auth/logout", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
@@ -76,7 +81,35 @@ export async function fetchProfile(): Promise<UserProfile> {
     throw new Error("Not authenticated");
   }
 
+  // GET /protected/profile — also acts as a session validity check
   const res = await fetch("/protected/profile", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    // Token is missing, expired, or revoked — clear stale credentials
+    clearTokens();
+    throw new Error(data.error ?? "Session expired");
+  }
+
+  return data;
+}
+
+export type DashboardData = {
+  message: string;
+  user_id: string;
+};
+
+export async function fetchDashboard(): Promise<DashboardData> {
+  const token = getAccessToken();
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  // GET /protected/dashboard — personalized greeting from the API
+  const res = await fetch("/protected/dashboard", {
     headers: { Authorization: `Bearer ${token}` },
   });
 

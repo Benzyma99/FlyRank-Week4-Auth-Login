@@ -6,9 +6,11 @@ import { login, setTokens, signup } from "@/lib/auth-client";
 type Mode = "login" | "signup";
 
 type AuthFormProps = {
+  /** Called after tokens are stored — parent handles redirect. */
   onSuccess: () => void;
 };
 
+/** Email/password form that toggles between login and signup modes. */
 export function AuthForm({ onSuccess }: AuthFormProps) {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
@@ -27,6 +29,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
         setTokens(access_token, refresh_token);
         onSuccess();
       } else {
+        // Signup only creates the user — a separate login call is needed for tokens
         await signup(email, password);
         const { access_token, refresh_token } = await login(email, password);
         setTokens(access_token, refresh_token);
