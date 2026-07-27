@@ -13,6 +13,7 @@ export async function GET(request: Request) {
     );
   }
 
+  // Extract the JWT from the Authorization header
   const token = authHeader.slice("Bearer ".length).trim();
 
   if (!token) {
@@ -22,15 +23,18 @@ export async function GET(request: Request) {
     );
   }
 
-  // Validate the JWT with Supabase and load the authenticated user
+  // Verify the token with Supabase (rejects expired, tampered, or invalid JWTs)
   const { data, error } = await supabase.auth.getUser(token);
 
   if (error || !data.user) {
     return NextResponse.json(
-      { error: "Access token required" },
+      { error: "Invalid or expired token" },
       { status: 401 },
     );
   }
 
-  return NextResponse.json(data.user, { status: 200 });
+  // Return only secure profile metadata — not the full auth payload
+  const { id, email, created_at } = data.user;
+
+  return NextResponse.json({ id, email, created_at }, { status: 200 });
 }
