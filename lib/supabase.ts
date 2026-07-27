@@ -10,5 +10,24 @@ if (!supabaseUrl || !supabaseKey) {
   );
 }
 
+const url = supabaseUrl;
+const key = supabaseKey;
+
 // Shared Supabase client for auth routes and other server code
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(url, key);
+
+/**
+ * Sign out the session tied to the given access token.
+ * Uses a request-scoped client so signOut applies to that JWT.
+ */
+export async function signOutWithToken(token: string) {
+  const authedClient = createClient(url, key, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
+
+  return authedClient.auth.signOut();
+}
