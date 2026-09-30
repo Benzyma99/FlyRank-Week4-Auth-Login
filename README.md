@@ -55,3 +55,6 @@ lib/
 
 openapi.json
 .env.example
+### Swagger UI Screenshot
+
+![Swagger UI](swagger-screenshot.png)
